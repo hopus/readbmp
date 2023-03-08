@@ -12,9 +12,14 @@ there's yet no typical service script for maintaining the daemon operations.
 
 it can be launched manually, for example :
 ```
-./readbmp --maxmessage 10000
+./readbmp --maxmessage 10000 --connect=myrouter.somewhere.com:5001
 ```
 will get the first 10000 BMP messages from the BMP source.
+
+```
+./readbmp --help
+```
+should give you the list of features and corresponding parameters.
 
 ### Building ###
 the following will bring a default build :
