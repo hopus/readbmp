@@ -2,8 +2,8 @@
 ; list of reference documents used to code ReadBMP
 ; `make refdocs` downloads them fro this list to refdocs directory
 
-; refnum/url           title                                                                                                                [apex]  [last modif(*)]
-;  +/- dependency indented ...                                                                                                   (*) as known when writing this ...
+; refnum/url(*)         title(*)                                                                                                            [apex] [last modif(**)]
+;  (*) +/- dependency indented ...                                                                                                  (**) as known when writing this ...
 
 rfc4271			A Border Gateway Protocol 4 (BGP-4)                                                                            [July 1994]   [January 2006]
     rfc6286		    Autonomous-System-Wide Unique BGP Identifier for BGP-4                                                                      [June 2011]

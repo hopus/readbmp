@@ -43,7 +43,7 @@ distclean-local:
 refdocs: ref_list.txt
 	[ -d refdocs ] && : || mkdir refdocs
 	## cd refdocs && cat ../ref_list.txt | sed -E 's/^[[:space:]]+//' | cut -f1 | grep -v '^$$' | while read NOM ; do if [ $$( echo "$$NOM" | cut -b1-3) = "rfc" ] ; then wget "https://www.rfc-editor.org/rfc/$${NOM}.txt" -O "$${NOM}".txt ; else wget "$${NOM}" ; fi ; done
-	cd refdocs && cat ../ref_list.txt | sed -E 's/^[[:space:]]+//' | sed -E 's/[[:space:]]+/ /g' | grep -v '^$$' | while read NOM TITLE ; do TITLE=$$( echo "$$TITLE" | cut -d '[' -f1 | sed 's/[[:space:]]*$$//' | tr '/' '-') ; if [ $$( echo "$$NOM" | cut -b1-3) = "rfc" ] ; then wget --no-verbose "https://www.rfc-editor.org/rfc/$${NOM}.txt" -O "$${NOM} - $${TITLE}".txt ; else wget --no-verbose "$${NOM}" -O "$${TITLE}".txt ; fi ; done
+	cd refdocs && cat ../ref_list.txt | sed -E 's/^[[:space:]]+//' | sed -E 's/[[:space:]]+/ /g' | grep -v '^$$' | while read NOM TITLE ; do [ "E$${NOM}E" = "E;E"  ] && continue ; TITLE=$$( echo "$$TITLE" | cut -d '[' -f1 | sed 's/[[:space:]]*$$//' | tr '/' '-') ; if [ $$( echo "$$NOM" | cut -b1-3) = "rfc" ] ; then wget --no-verbose "https://www.rfc-editor.org/rfc/$${NOM}.txt" -O "$${NOM} - $${TITLE}".txt ; else wget --no-verbose "$${NOM}" -O "$${TITLE}".txt ; fi ; done
 
 @QICONNSOURCE@/configure:
 	cd @QICONNSOURCE@ && autoall
