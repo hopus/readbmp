@@ -195,6 +195,95 @@ cerr << hexdump(message.substr(offset, 19)) << endl << endl;
 		}
 	    }
 
+	    size_t extract_bgp_open (int bgp_message_length, size_t offset) {
+		if ((int)(message.size()-offset) < bgp_message_length-19) {
+cerr << "extract_bgp_open error: msg too short" << endl;
+                    return message.size();
+		}
+		if (bgp_message_length < 10) {
+cerr << "extract_bgp_open error: msg too short, need at least 10 bytes and bgp_message_length says : " << bgp_message_length << endl;
+		    return message.size();
+		}
+		size_t schedulled_offset = offset + bgp_message_length;
+		unsigned const char *p = (unsigned const char *)message.c_str() + offset;
+		int bgp_vernum = extract_1B(p);
+		if (bgp_vernum != 4) {
+cerr << "extract_bgp_open error: wrong BGP version : " << bgp_vernum << " instead of 4 !" << endl;
+		    return message.size();
+		}
+		int my_as = extract_2B(p+1);
+		int hold_time = extract_2B(p+3);
+		int bgp_id = extract_4B(p+5);
+		int opt_len = extract_1B(p+9);
+cout << "  bgp open message : BGP-" << bgp_vernum << ", AS=" << my_as << ", hold-time=" << hold_time << "s, ID: " << intIPv4tos(bgp_id) << endl;
+		if (opt_len == 0)
+		    return offset + bgp_message_length;
+
+		unsigned const char *q = p + bgp_message_length-19;
+		p += 10;
+		offset += 10;
+
+		while (p+2 < q) {
+		    int parm_type = extract_1B (p),
+			parm_len = extract_1B (p+1);
+			if (p+2+parm_len > q) {
+cerr << "extract_bgp_open error: parm_len= " << parm_len << " is too big for remaining bgp message" << endl;
+			    return schedulled_offset;
+			}
+		    switch (parm_type) {
+			case 2: {		// parm is:  "Capabilities Optional Parameter"
+				p += 2, offset += 2;
+				unsigned const char *capq = p + parm_len;
+				while (p+2 < capq) {
+				    int cap_code = extract_1B (p),
+					cap_len = extract_1B (p+1);
+				    if (p+2+cap_len > capq) {
+cerr << "extract_bgp_open error: cap_len = " << cap_len << " is too big for remaining bgp message" << endl;
+					return schedulled_offset;
+				    }
+				    switch (cap_code) {
+					case 1: // Multiprotocol Extensions for BGP-4
+					    if (cap_len<4) {
+						cerr << "extract_bgp_open error: multiprotocol[1]cap has wrong size: " << cap_len << endl;
+						break;
+					    }
+					    cout << "           capability : ";      //"Multiprotocol Extensions"
+					    switch (extract_2B(p+2)) {	// that's the AFI
+						case 1:	    cout << "IPv4"; break;
+						case 2:	    cout << "IPv6"; break;
+						default:    cout << "some unhandled-by-us AFI (iana:" << extract_2B(p+2) << ")"; break;
+					    }
+					    switch (extract_2B(p+4)) {	// that's the SAFI
+						case 1:	    cout << " unicast"; break;
+						case 2:	    cout << " multicast"; break;
+						default:    cout << " some unhandled-by-us SAFI (iana:" << extract_2B(p+4) << ")"; break;
+					    }
+					    cout << " Multiprotocol Extensions" << endl;
+					    break;
+cout << "           capability : Multiprotocol Extensions for BGP-4" << endl; break;
+					case 2:	    cout << "           capability : Route Refresh Capability" << endl; break;
+					case 64:    cout << "           capability : Graceful Restart [...]" << endl; break;
+					case 65:    cout << "           capability : Support for 4-octet AS number, AS=" << extract_4B(p+2) << endl; break;
+					case 69:    cout << "           capability : ADD-PATH [...]" << endl; break;
+					case 70:    cout << "           capability : Enhanced Route Refresh [...]" << endl; break;
+					default:
+cout << "           capability : type=" << cap_code << endl << hexdump(message.substr(offset+2, cap_len)) << endl;
+				    }
+				    p += 2 + cap_len, offset += 2 + cap_len;
+				}
+			    }
+			    break;
+
+			default:		// parm is not (yet) handled ...
+cout << "           param : type=" << parm_type << endl << hexdump(message.substr(offset+2, parm_len)) << endl;
+			    p += 2 + parm_len, offset += 2 + parm_len;
+		    }
+		}
+
+		return offset + bgp_message_length;
+	    }
+
+
 	    size_t extract_bgp_update (int bgp_message_length, size_t offset) {
 		if ((int)(message.size()-offset) < bgp_message_length-19) {
 cerr << "extract_bgp_update error: msg too short" << endl;
@@ -581,18 +670,26 @@ cerr << "treat_3_peerup_msg error: msg too short" << endl;
 cout << "  loc-addr : " << local_addr << ":" << lport  << endl;
 cout << "    d-addr : " << peer.Peer_Address << ":" << dport  << endl;
 cout << "      open sent :" << endl;
-cout << hexdump(message.substr(offset+20, 19)) << endl << endl;	    // JDJDJDJD: DID NOT YET HAVE A DECENT SAMPLE
-			offset = extract_bgp_head (bgp_type, bgp_length, offset+20);
+		offset = extract_bgp_head (bgp_type, bgp_length, offset+20);
 cout << "             BGP_type = " << bgp_type << endl
      << "             BGP_leng = " << bgp_length; if (bgp_length>19) cout << " " << bgp_length-19 << " remaining ..." << endl; else cout << endl;
+		if (bgp_type != 1) {	// JDJDJDJD we should use enums for this ...
+cerr << "treat_3_peerup_msg : error we should have a bgp \"open\", but got : " << bgp_type << endl;
+		}
+		extract_bgp_open (bgp_length, offset);
 
 		offset += bgp_length-19;
 cout << "      open receiver :" << endl;
-cout << hexdump(message.substr(offset, 19)) << endl << endl;
-			offset = extract_bgp_head (bgp_type, bgp_length, offset);
+		offset = extract_bgp_head (bgp_type, bgp_length, offset);
 cout << "             BGP_type = " << bgp_type << endl
      << "             BGP_leng = " << bgp_length; if (bgp_length>19) cout << " " << bgp_length-19 << " remaining ..." << endl; else cout << endl;
-cout << "      open receiver :" << endl;
+		if (bgp_type != 1) {	// JDJDJDJD we should use enums for this ...
+cerr << "treat_3_peerup_msg : error we should have a bgp \"open\", but got : " << bgp_type << endl;
+		}
+		extract_bgp_open (bgp_length, offset);
+		// JDJDJDJD here we should compare capabilities and deduce :
+		//  - asSize in -path,
+		//  - family-types, mainly ...
 	    }
 
 	    void treatmessage (void) {

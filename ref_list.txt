@@ -1,9 +1,9 @@
 
 ; list of reference documents used to code ReadBMP
-; `make refdocs` downloads them fro this list to refdocs directory
+; `make refdocs` downloads them from this list to refdocs directory
 
 ; refnum/url(*)         title(*)                                                                                                            [apex] [last modif(**)]
-;  (*) +/- dependency indented ...                                                                                                  (**) as known when writing this ...
+;  (*) +/- dependency-indented ...                                                                                                  (**) as known when writing this ...
 
 rfc4271			A Border Gateway Protocol 4 (BGP-4)                                                                            [July 1994]   [January 2006]
     rfc6286		    Autonomous-System-Wide Unique BGP Identifier for BGP-4                                                                      [June 2011]
@@ -19,8 +19,8 @@ rfc4271			A Border Gateway Protocol 4 (BGP-4)                                   
 rfc7854			BGP Monitoring Protocol (BMP)                                                                                                   [June 2016]
     rfc8671                 Support for Adj-RIB-Out in the BGP Monitoring Protocol (BMP)                                                            [November 2019]
     rfc9069                 Support for Local RIB in the BGP Monitoring Protocol (BMP)                                                              [February 2022]
-rfc5492			Capabilities Advertisement with BGP-4                                                                                       [February 2009]
-    rfc8810		    Revision to Capability Codes Registration Procedures                                                        [May 2000]    [August 2020]
+rfc5492			Capabilities Advertisement with BGP-4                                                                           [May 2000]  [February 2009]
+    rfc8810		    Revision to Capability Codes Registration Procedures                                                                      [August 2020]
 rfc1997			BGP Communities Attribute                                                                                                     [August 1996]
     rfc8642		    Policy Behavior for Well-Known BGP Communities                                                                            [August 2019]
 rfc8092			BGP Large Communities Attribute                                                                                             [February 2017]
@@ -30,7 +30,14 @@ rfc4360			BGP Extended Communities Attribute                                    
 rfc5701			IPv6 Address Specific BGP Extended Community Attribute                                                                      [November 2009]
 rfc8950			Advertising IPv4 Network Layer Reachability Information (NLRI) with an IPv6 Next Hop                            [May 2009]  [November 2020]
 rfc6368			Internal BGP as the Provider/Customer Edge Protocol for BGP/MPLS IP Virtual Private Networks (VPNs)                        [September 2011]
+rfc2918                 Route Refresh Capability for BGP-4                                                                                         [September 2000]
+    rfc7313		    Enhanced Route Refresh Capability for BGP-4                                                                                 [July 2014]
+rfc4724			Graceful Restart Mechanism for BGP                                                                                           [January 2007]
+    rfc8538		    Notification Message Support for BGP Graceful Restart                                                                      [March 2019]
+rfc7911                 Advertisement of Multiple Paths in BGP                                                                                          [July 2016]
 
-https://www.iana.org/assignments/bgp-parameters/bgp-parameters.txt			IANA Border Gateway Protocol (BGP) Parameters               [2023-03-02]
-https://www.iana.org/assignments/address-family-numbers/address-family-numbers.txt	IANA Address Family Numbers                                 [2023-03-02]
+https://www.iana.org/assignments/bgp-parameters/bgp-parameters.txt			IANA Border Gateway Protocol (BGP) Parameters                  [2023-03-02]
+https://www.iana.org/assignments/address-family-numbers/address-family-numbers.txt	IANA (AFI) Address Family Numbers                              [2023-03-02]
+https://www.iana.org/assignments/safi-namespace/safi-namespace.txt                      IANA Subsequent Address Family Identifiers (SAFI) Parameters   [2023-03-02]
+https://www.iana.org/assignments/capability-codes/capability-codes.txt			IANA (BGP) Capability Codes                                    [2023-03-02]
 
