@@ -418,6 +418,38 @@ cerr << "unhandled AFI/SAFI combination : " << mprnlri_afi << "/" << mprnlri_saf
 				    }
 				}
 				break;
+
+			    case 15: {	// Multiprotocol Unreachable NLRI - MP_UNREACH_NLRI RFC4760
+				    unsigned const char *qq = p+attr_len;
+				    int mpurnlri_afi = extract_2B(p),
+					mpurnlri_safi = extract_1B(p+2);
+				    p += 3;
+				    if ((mpurnlri_afi == 2 /*IPv6*/) && (mpurnlri_safi == 1 /*unicast*/)) {
+					while (p<qq) {
+					    int prefix_len = extract_1B (p); p++;
+					    if (prefix_len > 128) {
+cerr << "extract_bgp_update : some prefix_len > 128 at IPv6 Extended Network Layer Reachability Information = " << prefix_len << endl;
+						return message.size();
+					    }
+					    struct sockaddr_storage a;
+					    memset (&a, 0, sizeof(a));
+					    sockaddr_in6 &sin = *(sockaddr_in6 *) &a;
+					    sin.sin6_family = AF_INET6;
+					    if (prefix_len != 0) {
+						int nbbytes = 1+((prefix_len-1)>>3);
+						memcpy (&sin.sin6_addr, p, nbbytes);
+						p += nbbytes;
+					    }
+cout << "          - " << a << "/" << prefix_len << endl;
+					}
+				    } else {
+cerr << "MP_UNREACH_NLRI : unhandled AFI/SAFI combination : " << mpurnlri_afi << "/" << mpurnlri_safi << endl;
+					p = qq;
+				    }
+				    
+				}
+				break;
+
 			    case 16: // extended communities  // oh boy !
 				{   unsigned const char *qq = p+attr_len;
 //cout << "          extended_communities:" << endl << hexdump(message.substr(p-(unsigned const char *)message.c_str(),attr_len)) << endl;
