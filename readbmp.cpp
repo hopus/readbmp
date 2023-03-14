@@ -384,6 +384,40 @@ cout << endl;
 cout << "          originator_id: " << intIPv4tos(attr_originator_id) << endl;
 				break;
 
+			    case 14: {	// Multiprotocol Reachable NLRI - MP_REACH_NLRI RFC4760
+				    unsigned const char *qq = p+attr_len;
+				    int mprnlri_afi = extract_2B(p),
+					mprnlri_safi = extract_1B(p+2),
+					mprnlri_nhlen = extract_1B(p+3);
+				    p += 4;
+				    if ((mprnlri_afi == 2 /*IPv6*/) && (mprnlri_safi == 1 /*unicast*/)) {
+					struct sockaddr_storage mprnlri_nexthop;
+					extract_IPv6 (p, mprnlri_nexthop);
+cout << "          e-nexthop : (IPv6 unicast) " << mprnlri_nexthop << endl;
+					p += mprnlri_nhlen+1;
+					while (p<qq) {
+					    int prefix_len = extract_1B (p); p++;
+					    if (prefix_len > 128) {
+cerr << "extract_bgp_update : some prefix_len > 128 at IPv6 Extended Network Layer Reachability Information = " << prefix_len << endl;
+						return message.size();
+					    }
+					    struct sockaddr_storage a;
+					    memset (&a, 0, sizeof(a));
+					    sockaddr_in6 &sin = *(sockaddr_in6 *) &a;
+					    sin.sin6_family = AF_INET6;
+					    if (prefix_len != 0) {
+						int nbbytes = 1+((prefix_len-1)>>3);
+						memcpy (&sin.sin6_addr, p, nbbytes);
+						p += nbbytes;
+					    }
+cout << "          + " << a << "/" << prefix_len << endl;
+					}
+				    } else {
+cerr << "unhandled AFI/SAFI combination : " << mprnlri_afi << "/" << mprnlri_safi << endl;
+					p = qq;
+				    }
+				}
+				break;
 			    case 16: // extended communities  // oh boy !
 				{   unsigned const char *qq = p+attr_len;
 //cout << "          extended_communities:" << endl << hexdump(message.substr(p-(unsigned const char *)message.c_str(),attr_len)) << endl;
@@ -467,7 +501,7 @@ cout << "          attr type: " << attr_type << " len: " << attr_len << endl;
 		offset += 2 + alength;
 
 		int nlength = bgp_message_length -23 -rlength -alength;
-		if ((nlength > 0) && (nlength < 4096)) {
+		if ((nlength > 0) && (nlength < 4096)) {    // NLRI (from the first BGP spec)
 cout << "  Network Layer Reachability Information :" << endl;// << hexdump(message.substr(offset, nlength)) << endl << endl;
 		    unsigned const char *q = (unsigned const char *)message.c_str() + message.size();
 		    while (p<q) {
