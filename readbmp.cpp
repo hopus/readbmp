@@ -153,7 +153,7 @@ for (i=0 ; i<256 ; i++) {
 		memcpy (&sin.sin6_addr, p, 16);
 	    }
 	    bool PerPeerIsIPv6 (int flag) {
-		return (flag & 0x1) ? true : false;
+		return (flag & 0x80) ? true : false;
 	    }
 
 
