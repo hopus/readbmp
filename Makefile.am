@@ -10,7 +10,7 @@ vimtest: all
 	## ./readbmp --maxmessage=1000
 	##
 	echo JDJDJDJD --- please ignore further output : those are not from building
-	./readbmp --bind=0.0.0.0:10000 --connect=127.0.0.1:5028 --maxmessage=40
+	./readbmp --user=$$(id -un):$$(id -gn) --bind=0.0.0.0:10000 --connect=127.0.0.1:5028 --maxmessage=40
 
 ###    2>&1 | unbuffer -p tr ':' '='
 

@@ -8,6 +8,9 @@
 #include <signal.h>
 #include <string.h> // memset
 #include <unistd.h> // close(int fd)
+#include <sys/types.h>	// getpwnam
+#include <pwd.h>	// getpwnam
+#include <grp.h>	// getgrnam
 
 #include <iomanip>
 
@@ -428,7 +431,7 @@ cerr << "unhandled AFI/SAFI combination : " << mprnlri_afi << "/" << mprnlri_saf
 					while (p<qq) {
 					    int prefix_len = extract_1B (p); p++;
 					    if (prefix_len > 128) {
-cerr << "extract_bgp_update : some prefix_len > 128 at IPv6 Extended Network Layer Reachability Information = " << prefix_len << endl;
+cerr << "extract_bgp_update : some prefix_len > 128 at IPv6 Extended Network Layer Unreachability Information = " << prefix_len << endl;
 						return message.size();
 					    }
 					    struct sockaddr_storage a;
@@ -824,13 +827,20 @@ if ( ((maxreceivedmessage != -1) && (nbmessage > maxreceivedmessage)) || (exitfr
 				case 5:
 				    h_msgtype = (int)(unsigned char)(*si);
 cout << endl << "bmp header :  version " << h_version << "   len " << h_msglength << "   type " << h_msgtype << endl;
+				    if (h_version != 3) {	// RFC7854 §4.1
+					cerr << "bmp header : unhandled bmp release version : " << h_version << ", bailing out" << endl;
+					schedule_for_destruction();
+				    } else if (h_msglength > 100000) {	// JDJDJDJD c'est arbitraire ...
+					cerr << "bmp header : len is too big : " << h_msglength << ", bailing out" << endl;
+					schedule_for_destruction();
+				    }
 				    rstatus = INMESSAGE;
 				    uncount = h_msglength - 6; // on enleve la taille du header
 				    message.clear();
 				    break;
 				default:
 cerr << "mais qu'est ce qu'on fout la ??? [1]" << endl;
-exit(0);
+				    schedule_for_destruction();
 			    }
 			    break;
 			case INMESSAGE:
@@ -843,12 +853,12 @@ exit(0);
 				}
 			    } else {
 cerr << "mais qu'est ce qu'on fout la [2] ???" << endl;
-exit(0);
+				schedule_for_destruction();
 			    }
 			    break;
 			default:
 cerr << "mais qu'est ce qu'on fout la [3] ???" << endl;
-exit(0);
+			    schedule_for_destruction();
 		    }
 		    i++, si++;
 		}
@@ -906,6 +916,8 @@ map <string,string> properties;	// JDJDJDJDJD usage futur ?
 int main (int nb, char ** cmde) {
 
     int    port_bmp = 5027;
+    string user ("bmpreader");
+    string group;
     list<AddressPort> listening_addresses;
     list<AddressPort> toconnect_addresses;
     list<int> listsockets;
@@ -923,6 +935,7 @@ int main (int nb, char ** cmde) {
 	    cout << cmde[0] << "   \\" << endl
 			    << "      [--bind=[address][:port]]  \\" << endl	// JDJDJDJDJD this doesn't work with [IPv6]:port
 			    << "      [--connect=[address][:port]]  \\" << endl	// JDJDJDJDJD this doesn't work with [IPv6]:port
+			    << "      [--user=[user][:group]]    \\" << endl
 			    << "      [--maxmessage=xxx]" << endl
 			    << "      [--properties|-p] [prop[=true]] [prop=value] ";
 	    return 0;
@@ -950,6 +963,17 @@ int main (int nb, char ** cmde) {
 	    }
 	} else if (strncmp (cmde[i], "--maxmessage=", 13) == 0) {
 	    maxreceivedmessage = atol (cmde[i]+13);
+	} else if (strncmp (cmde[i], "--user=", 7) == 0) {
+	    string scheme(cmde[i]+7);
+	    size_t p = scheme.find(':');
+	    if (p == string::npos) {	// we have only a user
+		user = scheme;
+	    } else {
+		if (!scheme.substr(p+1).empty())
+		    group = scheme.substr(p+1);
+		if (p>0)
+		    user = scheme.substr(0,p);
+	    }
 	} else if ((strcmp (cmde[i],"-p") == 0) || (strcmp(cmde[i], "--properties"))) {
 	    inproperties = true;
 	    continue;
@@ -1001,7 +1025,47 @@ int main (int nb, char ** cmde) {
 	}
     }
 
-    // JDJDJDJD : here be some code for dropping privileges ... not yet needed if we listen only user ports
+    // we drop privileges if needed
+    {	struct passwd *pwent = getpwnam (user.c_str());
+	if (pwent == NULL) {
+	    cerr << "could not retrieve uid for user=" << user << endl;
+	    return -1;
+	}
+	uid_t uid = pwent->pw_uid;
+	gid_t gid = pwent->pw_gid;
+
+	if (!group.empty()) {
+	    struct group * grent = getgrnam (group.c_str());
+	    if (grent == NULL) {
+		cerr << "could not retrieve gid for group=" << group << endl;
+		return -1;
+	    }
+	    gid = grent->gr_gid;
+	}
+
+	if (setgid (gid) != 0) {
+	    int e = errno;
+	    cerr << "could not change gid privileges ? " << strerror(e) << endl;
+	    return -1;
+	}
+	if (setuid (uid) != 0) {
+	    int e = errno;
+	    cerr << "could not change uid privileges ? " << strerror(e) << endl;
+	    return -1;
+	}
+
+#ifdef HAVE_PR_SET_DUMPABLE
+cerr << "prctl (PR_GET_DUMPABLE) = " << prctl (PR_GET_DUMPABLE) << endl;
+	if (prctl (PR_SET_DUMPABLE, 1) != 0) {
+	    int e = errno;
+	    cerr << "could not set core dump ability ? " << strerror(e) << endl;
+	    return -1;
+	}
+cerr << "prctl (PR_GET_DUMPABLE) = " << prctl (PR_GET_DUMPABLE) << endl;
+#endif
+cerr << cmde[0] << " started, pid=" << getpid() << endl;
+    }
+
 
     cpool.set_debug_multiple_scheddestr (debug_multiple_scheddestr);
     cpool.init_signal ();
@@ -1032,7 +1096,6 @@ int main (int nb, char ** cmde) {
 	for (li=toconnect_addresses.begin() ; li!=toconnect_addresses.end() ; li++) {
 	    int port = li->second;
 	    string &address = li->first;
-
     cerr << "connecting to [" << address << "]:[" << port << "]" << endl;
 
 //	    int type;	// JDJDJDJD : okay this is in fact _ugly_ and IPv4 only .... init_connect below needs to be refunded ... 
