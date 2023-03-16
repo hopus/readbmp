@@ -1,5 +1,5 @@
-
-#include "config.h"
+// 
+// #include "config.h"
 
 #define QICONN_H_GLOBINST
 #define READBMP_H_GLOBINST
@@ -378,6 +378,7 @@ cout << "          communities: ";
 				    while (p<qq) {
 cout << (unsigned int)extract_2B(p) << ":" << (unsigned int)extract_2B(p+2) << " "; p+=4;
 				    }
+				    p = qq;
 cout << endl;
 				}
 				break;
@@ -388,6 +389,7 @@ cout << "          originator_id: " << intIPv4tos(attr_originator_id) << endl;
 				break;
 
 			    case 14: {	// Multiprotocol Reachable NLRI - MP_REACH_NLRI RFC4760
+cout << "          MP_reachable_NLRI :" << endl;
 				    unsigned const char *qq = p+attr_len;
 				    int mprnlri_afi = extract_2B(p),
 					mprnlri_safi = extract_1B(p+2),
@@ -415,6 +417,7 @@ cerr << "extract_bgp_update : some prefix_len > 128 at IPv6 Extended Network Lay
 					    }
 cout << "          + " << a << "/" << prefix_len << endl;
 					}
+					p = qq;
 				    } else {
 cerr << "unhandled AFI/SAFI combination : " << mprnlri_afi << "/" << mprnlri_safi << endl;
 					p = qq;
@@ -423,11 +426,15 @@ cerr << "unhandled AFI/SAFI combination : " << mprnlri_afi << "/" << mprnlri_saf
 				break;
 
 			    case 15: {	// Multiprotocol Unreachable NLRI - MP_UNREACH_NLRI RFC4760
+cout << "          MP_unreachable_NLRI :" << endl;
 				    unsigned const char *qq = p+attr_len;
 				    int mpurnlri_afi = extract_2B(p),
 					mpurnlri_safi = extract_1B(p+2);
 				    p += 3;
 				    if ((mpurnlri_afi == 2 /*IPv6*/) && (mpurnlri_safi == 1 /*unicast*/)) {
+					if (p == qq) { // seem to be a  marker of End-of-RIB
+cout << "          list of IPv6-unicast NLRI is empty --> End-of-RIB marker" << endl;
+					}
 					while (p<qq) {
 					    int prefix_len = extract_1B (p); p++;
 					    if (prefix_len > 128) {
@@ -445,6 +452,7 @@ cerr << "extract_bgp_update : some prefix_len > 128 at IPv6 Extended Network Lay
 					    }
 cout << "          - " << a << "/" << prefix_len << endl;
 					}
+					p = qq;
 				    } else {
 cerr << "MP_UNREACH_NLRI : unhandled AFI/SAFI combination : " << mpurnlri_afi << "/" << mpurnlri_safi << endl;
 					p = qq;
@@ -503,6 +511,7 @@ cout << "               " << ((0x40 & extcom_typeHi)?"":"transitive ") << "unkno
 					}
 					cout << endl;
 				    }
+				    p = qq;
 				}
 				break;
 
@@ -516,6 +525,7 @@ cout << (unsigned int)extract_4B(p) << ":"
      << (unsigned int)extract_4B(p+8) << " "; p+=12;
 				    }
 cout << endl;
+				    p = qq;
 //exitfromhere ++;
 				}
 				break;
@@ -649,8 +659,8 @@ cout << "  per-peer : " << peer.Peer_Address << " AS" << peer.Peer_AS << " id:" 
 
 		int bgp_type = -1, bgp_length = -1;
 			offset = extract_bgp_head (bgp_type, bgp_length, offset);
-cout << "          BGP_type = " << bgp_type << endl
-     << "          BGP_leng = " << bgp_length; if (bgp_length>19) cout << " " << bgp_length-19 << " remaining ..." << endl; else cout << endl;
+// cout << "          BGP_type = " << bgp_type << endl
+//      << "          BGP_leng = " << bgp_length; if (bgp_length>19) cout << " " << bgp_length-19 << " remaining ..." << endl; else cout << endl;
 
 // cout << hexdump(message.substr(offset)) << endl << endl;
 		if (bgp_type != 2) {
@@ -740,8 +750,8 @@ cout << "  loc-addr : " << local_addr << ":" << lport  << endl;
 cout << "    d-addr : " << peer.Peer_Address << ":" << dport  << endl;
 cout << "      open sent :" << endl;
 		offset = extract_bgp_head (bgp_type, bgp_length, offset+20);
-cout << "             BGP_type = " << bgp_type << endl
-     << "             BGP_leng = " << bgp_length; if (bgp_length>19) cout << " " << bgp_length-19 << " remaining ..." << endl; else cout << endl;
+// cout << "             BGP_type = " << bgp_type << endl
+//      << "             BGP_leng = " << bgp_length; if (bgp_length>19) cout << " " << bgp_length-19 << " remaining ..." << endl; else cout << endl;
 		if (bgp_type != 1) {	// JDJDJDJD we should use enums for this ...
 cerr << "treat_3_peerup_msg : error we should have a bgp \"open\", but got : " << bgp_type << endl;
 		}
@@ -750,8 +760,8 @@ cerr << "treat_3_peerup_msg : error we should have a bgp \"open\", but got : " <
 		offset += bgp_length-19;
 cout << "      open receiver :" << endl;
 		offset = extract_bgp_head (bgp_type, bgp_length, offset);
-cout << "             BGP_type = " << bgp_type << endl
-     << "             BGP_leng = " << bgp_length; if (bgp_length>19) cout << " " << bgp_length-19 << " remaining ..." << endl; else cout << endl;
+// cout << "             BGP_type = " << bgp_type << endl
+//      << "             BGP_leng = " << bgp_length; if (bgp_length>19) cout << " " << bgp_length-19 << " remaining ..." << endl; else cout << endl;
 		if (bgp_type != 1) {	// JDJDJDJD we should use enums for this ...
 cerr << "treat_3_peerup_msg : error we should have a bgp \"open\", but got : " << bgp_type << endl;
 		}
