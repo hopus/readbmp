@@ -1,5 +1,5 @@
-// 
-// #include "config.h"
+
+#include "config.h"
 
 #define QICONN_H_GLOBINST
 #define READBMP_H_GLOBINST
@@ -566,6 +566,8 @@ cout << "  Network Layer Reachability Information :" << endl;// << hexdump(messa
 			}
 cout << "          + " << a << "/" << prefix_len << endl;
 		    }
+		} else if ((nlength == 0) && (alength == 0) && (rlength == 0)) {    // we have an empty update message --> end of RIB marker
+cout << "          empty update message: End-of-RIB marker (IPv4 unicast)" << endl;
 		}
 		offset += nlength;
 		return offset;
